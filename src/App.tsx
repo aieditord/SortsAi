@@ -13,9 +13,12 @@ import {
   Upload,
   Download,
   ArrowRight,
-  ShoppingBag
+  ShoppingBag,
+  FolderDown,
+  Code
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import JSZip from 'jszip';
 import { searchProduct, generateScript, generateAudio, generateVisual } from './services/gemini';
 import { cn } from './lib/utils';
 
@@ -33,6 +36,7 @@ export default function App() {
   const [script, setScript] = useState<Script | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isYoutubeConnected, setIsYoutubeConnected] = useState(() => {
     try {
       return localStorage.getItem('isYoutubeConnected') === 'true';
@@ -125,14 +129,20 @@ export default function App() {
   const handleSearch = async () => {
     if (!query) return;
     setLoading(true);
+    setError(null);
     try {
       const info = await searchProduct(query);
-      setProductInfo(info || '');
-      const generatedScript = await generateScript(info || '');
+      if (!info) throw new Error("Could not find product information. Please try a different search term.");
+      
+      setProductInfo(info);
+      const generatedScript = await generateScript(info);
+      if (!generatedScript) throw new Error("Failed to generate script.");
+      
       setScript(generatedScript);
       setStep('script');
-    } catch (error) {
-      console.error(error);
+    } catch (err: any) {
+      console.error("Search error:", err);
+      setError(err.message || "An unexpected error occurred during search. Please check your API key and connection.");
     } finally {
       setLoading(false);
     }
@@ -197,6 +207,37 @@ export default function App() {
     }
   };
 
+  const handleDownloadAll = async () => {
+    const zip = new JSZip();
+    
+    if (imageUrl) {
+      const imgData = await fetch(imageUrl).then(r => r.blob());
+      zip.file("visual.png", imgData);
+    }
+    
+    if (audioUrl) {
+      const audioData = await fetch(audioUrl).then(r => r.blob());
+      zip.file("audio.wav", audioData);
+    }
+
+    if (script) {
+      const scriptText = `HOOK: ${script.hook}\n\nBODY: ${script.body}\n\nCTA: ${script.cta}`;
+      zip.file("script.txt", scriptText);
+    }
+
+    const content = await zip.generateAsync({ type: "blob" });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(content);
+    link.download = `shorts-ai-bundle-${Date.now()}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadSource = () => {
+    window.location.href = '/api/download-source';
+  };
+
   const handleUpload = async () => {
     setUploading(true);
     // Simulate upload since we need a video file for real YouTube upload
@@ -232,6 +273,14 @@ export default function App() {
                 Connect YouTube
               </button>
             )}
+            <button 
+              onClick={handleDownloadSource}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white border border-white/10 rounded-full text-sm font-bold hover:bg-zinc-800 transition-colors"
+              title="Download source code for GitHub"
+            >
+              <Code className="w-4 h-4" />
+              Source
+            </button>
           </div>
         </div>
       </header>
@@ -276,6 +325,17 @@ export default function App() {
                   Generate
                 </button>
               </div>
+
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="max-w-2xl mx-auto p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400 text-sm"
+                >
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <p className="text-left">{error}</p>
+                </motion.div>
+              )}
             </motion.div>
           )}
 
@@ -424,6 +484,13 @@ export default function App() {
                       {uploading ? 'Uploading...' : 'Upload to YouTube Shorts'}
                     </button>
                   )}
+                  <button 
+                    onClick={handleDownloadAll}
+                    className="w-full py-4 bg-emerald-500/10 text-emerald-400 rounded-2xl font-bold border border-emerald-500/20 hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                  >
+                    <FolderDown className="w-5 h-5" />
+                    Download All (ZIP)
+                  </button>
                   <button 
                     onClick={handleDownload}
                     className="w-full py-4 bg-zinc-900 text-white rounded-2xl font-bold border border-white/5 hover:bg-zinc-800 transition-all flex items-center justify-center gap-2"

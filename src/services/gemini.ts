@@ -1,13 +1,17 @@
 import { GoogleGenAI, Type, Modality, GenerateContentResponse } from "@google/genai";
 
 const getAI = () => {
-  return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Gemini API Key is missing. Please set GEMINI_API_KEY in your Render.com environment variables.");
+  }
+  return new GoogleGenAI({ apiKey });
 };
 
 export const searchProduct = async (query: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-3.1-pro-preview",
     contents: `Find detailed information about this product: ${query}. Include key features, pros, cons, and pricing if available.`,
     config: {
       tools: [{ googleSearch: {} }],
@@ -19,7 +23,7 @@ export const searchProduct = async (query: string) => {
 export const generateScript = async (productInfo: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-3.1-pro-preview",
     contents: `Create a high-energy 60-second YouTube Shorts script for this product: ${productInfo}. 
     The script should be engaging, highlight the best features, and have a clear call to action.
     Format as JSON with "hook", "body", and "cta" fields.`,

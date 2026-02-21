@@ -2,6 +2,8 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import dotenv from "dotenv";
+import archiver from "archiver";
+import fs from "fs";
 
 dotenv.config();
 
@@ -45,6 +47,48 @@ async function startServer() {
         </body>
       </html>
     `);
+  });
+
+  // Endpoint to download project source as ZIP
+  app.get("/api/download-source", (req, res) => {
+    const archive = archiver('zip', {
+      zlib: { level: 9 }
+    });
+
+    res.attachment('shorts-ai-source.zip');
+
+    archive.on('error', (err) => {
+      res.status(500).send({ error: err.message });
+    });
+
+    archive.pipe(res);
+
+    // Add files and directories
+    const rootDir = process.cwd();
+    
+    // Add src folder
+    archive.directory(path.join(rootDir, 'src/'), 'src');
+    
+    // Add individual files
+    const filesToInclude = [
+      'package.json',
+      'server.ts',
+      'vite.config.ts',
+      'tsconfig.json',
+      'index.html',
+      '.gitignore',
+      '.env.example',
+      'metadata.json'
+    ];
+
+    filesToInclude.forEach(file => {
+      const filePath = path.join(rootDir, file);
+      if (fs.existsSync(filePath)) {
+        archive.file(filePath, { name: file });
+      }
+    });
+
+    archive.finalize();
   });
 
   // Vite middleware for development
