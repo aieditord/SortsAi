@@ -11,7 +11,7 @@ const getAI = () => {
 export const searchProduct = async (query: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3.1-pro-preview",
+    model: "gemini-3-flash-preview",
     contents: `Find detailed information about this product: ${query}. Include key features, pros, cons, and pricing if available.`,
     config: {
       tools: [{ googleSearch: {} }],
@@ -20,12 +20,13 @@ export const searchProduct = async (query: string) => {
   return response.text;
 };
 
-export const generateScript = async (productInfo: string) => {
+export const generateScript = async (productInfo: string, language: string = 'English') => {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3.1-pro-preview",
+    model: "gemini-3-flash-preview",
     contents: `Create a high-energy 60-second YouTube Shorts script for this product: ${productInfo}. 
     The script should be engaging, highlight the best features, and have a clear call to action.
+    The script MUST be written in ${language}.
     Format as JSON with "hook", "body", and "cta" fields.`,
     config: {
       responseMimeType: "application/json",
@@ -43,11 +44,11 @@ export const generateScript = async (productInfo: string) => {
   return JSON.parse(response.text);
 };
 
-export const generateAudio = async (text: string) => {
+export const generateAudio = async (text: string, language: string = 'English') => {
   const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-preview-tts",
-    contents: [{ parts: [{ text: `Speak enthusiastically: ${text}` }] }],
+    contents: [{ parts: [{ text: `Speak enthusiastically in ${language}: ${text}` }] }],
     config: {
       responseModalities: [Modality.AUDIO],
       speechConfig: {

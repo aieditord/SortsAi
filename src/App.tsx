@@ -32,6 +32,7 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'search' | 'script' | 'preview' | 'upload'>('search');
+  const [language, setLanguage] = useState<'English' | 'Hindi'>('English');
   const [productInfo, setProductInfo] = useState('');
   const [script, setScript] = useState<Script | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -135,7 +136,7 @@ export default function App() {
       if (!info) throw new Error("Could not find product information. Please try a different search term.");
       
       setProductInfo(info);
-      const generatedScript = await generateScript(info);
+      const generatedScript = await generateScript(info, language);
       if (!generatedScript) throw new Error("Failed to generate script.");
       
       setScript(generatedScript);
@@ -154,7 +155,7 @@ export default function App() {
     try {
       const fullText = `${script.hook}. ${script.body}. ${script.cta}`;
       const [audio, image] = await Promise.all([
-        generateAudio(fullText),
+        generateAudio(fullText, language),
         generateVisual(query)
       ]);
       setAudioUrl(audio);
@@ -273,14 +274,6 @@ export default function App() {
                 Connect YouTube
               </button>
             )}
-            <button 
-              onClick={handleDownloadSource}
-              className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white border border-white/10 rounded-full text-sm font-bold hover:bg-zinc-800 transition-colors"
-              title="Download source code for GitHub"
-            >
-              <Code className="w-4 h-4" />
-              Source
-            </button>
           </div>
         </div>
       </header>
@@ -304,26 +297,49 @@ export default function App() {
                 </p>
               </div>
 
-              <div className="relative max-w-2xl mx-auto">
-                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                  <ShoppingBag className="w-5 h-5 text-zinc-500" />
+              <div className="flex flex-col items-center gap-6 max-w-2xl mx-auto">
+                <div className="flex bg-zinc-900/80 p-1 rounded-xl border border-white/10">
+                  <button 
+                    onClick={() => setLanguage('English')}
+                    className={cn(
+                      "px-6 py-2 rounded-lg text-sm font-bold transition-all",
+                      language === 'English' ? "bg-emerald-500 text-black" : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    English
+                  </button>
+                  <button 
+                    onClick={() => setLanguage('Hindi')}
+                    className={cn(
+                      "px-6 py-2 rounded-lg text-sm font-bold transition-all",
+                      language === 'Hindi' ? "bg-emerald-500 text-black" : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    Hindi
+                  </button>
                 </div>
-                <input 
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="e.g. Sony WH-1000XM5 Headphones"
-                  className="w-full bg-zinc-900/50 border border-white/10 rounded-2xl py-5 pl-12 pr-32 text-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-                <button 
-                  onClick={handleSearch}
-                  disabled={loading || !query}
-                  className="absolute right-2 top-2 bottom-2 px-6 bg-emerald-500 text-black rounded-xl font-bold hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-                  Generate
-                </button>
+
+                <div className="relative w-full">
+                  <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                    <ShoppingBag className="w-5 h-5 text-zinc-500" />
+                  </div>
+                  <input 
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="e.g. Sony WH-1000XM5 Headphones"
+                    className="w-full bg-zinc-900/50 border border-white/10 rounded-2xl py-5 pl-12 pr-32 text-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  />
+                  <button 
+                    onClick={handleSearch}
+                    disabled={loading || !query}
+                    className="absolute right-2 top-2 bottom-2 px-6 bg-emerald-500 text-black rounded-xl font-bold hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+                    Generate
+                  </button>
+                </div>
               </div>
 
               {error && (
